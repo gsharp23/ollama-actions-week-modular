@@ -40,7 +40,10 @@ def analyze_content(content, config, storage=None, result_dir=None):
 
 
 def analyze_repository(repo_path, config, storage=None, result_dir=None):
-    """Analyze relevant files across a repository. Returns a list of AnalysisResult."""
+    """Analyze relevant files across a repository. Returns a list of AnalysisResult.
+    Individual file failures (e.g. timeouts) are logged and skipped rather than
+    crashing the entire run.
+    """
     repo_path = Path(repo_path)
     results = []
 
@@ -50,7 +53,10 @@ def analyze_repository(repo_path, config, storage=None, result_dir=None):
         targets.append(readme)
 
     targets.extend(repo_path.glob("*.py"))
-    targets.extend((repo_path / ".github" / "workflows").glob("*.yml")) if (repo_path / ".github" / "workflows").exists() else None
+
+    workflows_dir = repo_path / ".github" / "workflows"
+    if workflows_dir.exists():
+        targets.extend(workflows_dir.glob("*.yml"))
 
     for file_path in targets:
         if file_path is None or not file_path.exists():
@@ -62,7 +68,11 @@ def analyze_repository(repo_path, config, storage=None, result_dir=None):
             continue
 
         print(f"Analyzing {file_path.name}...")
-        result = analyze_content(content, config, storage=storage, result_dir=result_dir)
-        results.append(result)
+        try:
+            result = analyze_content(content, config, storage=storage, result_dir=result_dir)
+            results.append(result)
+        except Exception as e:
+            print(f"Skipping {file_path.name} due to error: {e}")
+            continue
 
     return results

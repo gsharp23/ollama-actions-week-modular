@@ -24,7 +24,7 @@ prompts:
     Focus on: logic errors, edge cases, error handling.
 
 thresholds:
-  max_response_time: 60
+  max_response_time: 90
   min_response_length: 50
 
 cache:
