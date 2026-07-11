@@ -52,10 +52,9 @@ jobs:
         id: ollama-model-cache
         with:
           path: ${{ env.OLLAMA_MODELS }}
-          key: ollama-models-${{ runner.os }}-llama3.2-1b-v1
+          key: ollama-models-${{ runner.os }}-${{ hashFiles('config.yaml') }}
           restore-keys: |
             ollama-models-${{ runner.os }}-
-            ollama-models-
 
       - name: Start Ollama service
         run: |
@@ -63,11 +62,27 @@ jobs:
           ollama serve > ollama.log 2>&1 &
           sleep 10
 
-      - name: Download llama3.2 model
-        if: steps.ollama-model-cache.outputs.cache-hit != 'true'
+      - name: Setup Python environment
         run: |
-          echo "Model cache miss. Downloading llama3.2:1b..."
-          ollama pull llama3.2:1b
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyyaml
+
+      - name: Download required models
+        run: |
+          python3 -c "
+          from ollama_pipeline.config import load_config
+          import subprocess
+
+          config = load_config()
+          models = set(config.get('model_assignments', {}).values())
+          models.add(config.get('models', {}).get('classifier', 'llama3.2:1b'))
+          models.add(config.get('models', {}).get('default', 'llama3.2:1b'))
+
+          for model in models:
+              print(f'Ensuring model available: {model}')
+              subprocess.run(['ollama', 'pull', model], check=True)
+          "
 
       - name: Verify model availability
         run: |
@@ -81,11 +96,6 @@ jobs:
           python3 scripts/test_runner.py
         continue-on-error: true
 
-      - name: Setup Python testing environment
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Run critical tests
         run: pytest tests/ -m critical -v --tb=short
 
@@ -96,44 +106,40 @@ jobs:
         continue-on-error: true
         run: pytest tests/ -m advisory -v
 
-      - name: Create timestamped result directory
+      - name: Verify package imports
+        run: |
+          python3 -c "from ollama_pipeline import ModelRouter, ResultStorage; print('Imports work')"
+
+      - name: Run multi-model analysis pipeline
         run: |
           python3 -c "
-          import sys
-          sys.path.append('.')
-          from utils.directory_manager import DirectoryManager
+          from ollama_pipeline import ResultStorage, load_config
+          from ollama_pipeline.analysis import analyze_repository
 
-          dm = DirectoryManager('results')
-          result_dir = dm.create_timestamped_dir('run-${{ github.run_number }}')
+          config = load_config()
+          storage = ResultStorage('results')
+          result_dir = storage.create_run_directory('${{ github.run_number }}')
+
+          results = analyze_repository('.', config, storage=storage, result_dir=result_dir)
+
+          for r in results:
+              print(f'{r.task_type} via {r.model} took {r.duration_seconds}s')
+
+          storage.commit_all(
+              result_dir,
+              workflow_run='${{ github.run_number }}',
+              commit_sha='${{ github.sha }}',
+              extra_metadata={'files_analyzed': len(results)}
+          )
 
           with open('current_result_dir.txt', 'w') as f:
               f.write(str(result_dir))
-
-          print(f'Created result directory: {result_dir}')
           "
 
-      - name: Generate workflow results
+      - name: Generate historical report
         run: |
-          RESULT_DIR=$(cat current_result_dir.txt)
-
-          echo "Generating AI analysis..."
-          WORKFLOW_FILE=".github/workflows/ollama-basic.yml"
-          PROMPT="Analyze this GitHub Actions workflow and suggest three specific improvements for production use. Focus on security, performance, and maintainability."
-          WORKFLOW_CONTENT=$(cat "$WORKFLOW_FILE")
-
-          ollama run llama3.2:1b "$PROMPT
-
-          $WORKFLOW_CONTENT" > "$RESULT_DIR/workflow-analysis.txt"
-
-          echo "AI Analysis:"
-          cat "$RESULT_DIR/workflow-analysis.txt"
-
-          echo "Workflow Run: ${{ github.run_number }}" > "$RESULT_DIR/metadata.txt"
-          echo "Timestamp: $(date)" >> "$RESULT_DIR/metadata.txt"
-          echo "Commit: ${{ github.sha }}" >> "$RESULT_DIR/metadata.txt"
-
-          echo "Results saved to $RESULT_DIR"
-          ls -la "$RESULT_DIR"
+          python3 scripts/generate_report.py --results-dir results --output historical_report.md
+          cat historical_report.md
 
       - name: Performance benchmarking
         run: |
@@ -150,28 +156,28 @@ jobs:
           echo "Response Length: $(wc -w < ai_response.txt) words" >> performance-report.txt
           cat performance-report.txt
 
-      - name: Generate test summary
+      - name: Write dashboard summary
         if: always()
         run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Multi-Model Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          TOTAL=$(grep -rc "def test_" tests/*.py | awk -F: '{s+=$2} END {print s}')
-          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Tests | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| Binary Cache | ${{ steps.ollama-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Model Cache | ${{ steps.ollama-model-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Binary Cache Hit | ${{ steps.ollama-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Model Cache Hit | ${{ steps.ollama-model-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Number | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See job logs for classification and routing decisions." >> $GITHUB_STEP_SUMMARY
 
       - name: Configure git for automated commits
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      - name: Commit results to repository
+      - name: Commit historical report
         run: |
-          RESULT_DIR=$(cat current_result_dir.txt)
-          git add results/
-          git commit -m "Add results from workflow run #${{ github.run_number }}" || echo "No changes to commit"
+          git add historical_report.md
+          git commit -m "Update historical report - run #${{ github.run_number }}" || echo "No changes to commit"
           git push origin main || echo "Push failed - may need permissions"
         continue-on-error: true
 
@@ -180,6 +186,13 @@ jobs:
         with:
           name: workflow-results-${{ github.run_number }}
           path: results/
+          retention-days: 30
+
+      - name: Upload historical report
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-report-${{ github.run_number }}
+          path: historical_report.md
           retention-days: 30
 
       - name: Upload test results
