@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-07-11T20:31:05.269824",
+  "workflow_run": "6",
+  "commit_sha": "17b783b612bca34960bc6375ac53b0855388efdd",
+  "result_directory": "results/run-6-2026-07-11_20-29-49",
+  "files_created": [
+    "analysis-code_review.txt",
+    "analysis-documentation.txt"
+  ],
+  "files_analyzed": 2
+}
