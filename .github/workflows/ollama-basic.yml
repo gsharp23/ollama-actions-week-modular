@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 jobs:
   ai-processing:
     runs-on: ubuntu-latest
     env:
       OLLAMA_HOST: 127.0.0.1:11435
       OLLAMA_MODELS: ${{ github.workspace }}/.ollama/models
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -71,6 +74,13 @@ jobs:
           echo "Model cache hit: ${{ steps.ollama-model-cache.outputs.cache-hit }}"
           ollama list
 
+      - name: Run modular test suite
+        id: modular-tests
+        run: |
+          echo "Running modular test suite..."
+          python3 scripts/test_runner.py
+        continue-on-error: true
+
       - name: Setup Python testing environment
         run: |
           python -m pip install --upgrade pip
@@ -85,6 +95,45 @@ jobs:
       - name: Run advisory tests
         continue-on-error: true
         run: pytest tests/ -m advisory -v
+
+      - name: Create timestamped result directory
+        run: |
+          python3 -c "
+          import sys
+          sys.path.append('.')
+          from utils.directory_manager import DirectoryManager
+
+          dm = DirectoryManager('results')
+          result_dir = dm.create_timestamped_dir('run-${{ github.run_number }}')
+
+          with open('current_result_dir.txt', 'w') as f:
+              f.write(str(result_dir))
+
+          print(f'Created result directory: {result_dir}')
+          "
+
+      - name: Generate workflow results
+        run: |
+          RESULT_DIR=$(cat current_result_dir.txt)
+
+          echo "Generating AI analysis..."
+          WORKFLOW_FILE=".github/workflows/ollama-basic.yml"
+          PROMPT="Analyze this GitHub Actions workflow and suggest three specific improvements for production use. Focus on security, performance, and maintainability."
+          WORKFLOW_CONTENT=$(cat "$WORKFLOW_FILE")
+
+          ollama run llama3.2:1b "$PROMPT
+
+          $WORKFLOW_CONTENT" > "$RESULT_DIR/workflow-analysis.txt"
+
+          echo "AI Analysis:"
+          cat "$RESULT_DIR/workflow-analysis.txt"
+
+          echo "Workflow Run: ${{ github.run_number }}" > "$RESULT_DIR/metadata.txt"
+          echo "Timestamp: $(date)" >> "$RESULT_DIR/metadata.txt"
+          echo "Commit: ${{ github.sha }}" >> "$RESULT_DIR/metadata.txt"
+
+          echo "Results saved to $RESULT_DIR"
+          ls -la "$RESULT_DIR"
 
       - name: Performance benchmarking
         run: |
@@ -112,6 +161,26 @@ jobs:
           echo "| Total Tests | $TOTAL |" >> $GITHUB_STEP_SUMMARY
           echo "| Binary Cache | ${{ steps.ollama-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Model Cache | ${{ steps.ollama-model-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Configure git for automated commits
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Commit results to repository
+        run: |
+          RESULT_DIR=$(cat current_result_dir.txt)
+          git add results/
+          git commit -m "Add results from workflow run #${{ github.run_number }}" || echo "No changes to commit"
+          git push origin main || echo "Push failed - may need permissions"
+        continue-on-error: true
+
+      - name: Upload workflow results
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-results-${{ github.run_number }}
+          path: results/
+          retention-days: 30
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
