@@ -1,8 +1,8 @@
 # Historical Analysis Report
 
-Generated: 2026-07-11T20:31:05.328158
-Total runs analyzed: 1
+Generated: 2026-07-11T20:50:27.089322
+Total runs analyzed: 2
 
 ## Insufficient Data
 
-Only 1 run(s) recorded so far. At least 3 runs are needed for trend analysis. Keep running the workflow to build history.
+Only 2 run(s) recorded so far. At least 3 runs are needed for trend analysis. Keep running the workflow to build history.
