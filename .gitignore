@@ -1,0 +1,5 @@
+.coverage
+test-results-run-*/
+htmlcov/
+__pycache__/
+*.pyc
