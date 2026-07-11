@@ -1,8 +1,27 @@
 # Historical Analysis Report
 
-Generated: 2026-07-11T20:50:27.089322
-Total runs analyzed: 2
+Generated: 2026-07-11T21:11:31.463608
+Total runs analyzed: 3
 
-## Insufficient Data
+## Executive Summary
 
-Only 2 run(s) recorded so far. At least 3 runs are needed for trend analysis. Keep running the workflow to build history.
+- Total workflow runs recorded: 3
+- Runs in recent window: 3
+- Overall activity trend: ➡️ stable
+
+## Trends
+
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Total runs | 3 | ➡️ |
+| Recent runs (last 5) | 3 | ➡️ |
+
+## File Types Analyzed
+
+| File Type | Count |
+|-----------|-------|
+| .txt | 5 |
+
+## Recommendations
+
+- Activity is stable. No immediate action needed.
