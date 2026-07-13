@@ -1,0 +1,24 @@
+2026-07-11 17:24:47,265 - INFO - info:85 - Starting workflow monitoring | Context: {"workflow_run": "999", "commit_sha": "abc123"}
+2026-07-11 17:24:47,265 - INFO - info:85 - Starting: test_operation
+2026-07-11 17:24:48,277 - INFO - info:85 - Completed: test_operation (1.01s)
+2026-07-11 17:24:48,277 - INFO - info:85 - METRIC: test_operation_duration=1.0s | Context: {"metric_name": "test_operation_duration", "value": 1.0, "unit": "s", "tags": {}}
+2026-07-11 17:24:48,278 - INFO - info:85 - METRIC: test_operation_status=1 | Context: {"metric_name": "test_operation_status", "value": 1, "unit": "", "tags": {}}
+2026-07-11 17:24:49,640 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:24:48.278257", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:24:51,008 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:24:49.640932", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:24:51,021 - INFO - info:85 - Summary generated | Context: {"file": "test-results/monitoring_summary.json"}
+2026-07-11 17:26:17,889 - INFO - info:85 - Starting workflow monitoring | Context: {"workflow_run": "999", "commit_sha": "abc123"}
+2026-07-11 17:26:17,889 - INFO - info:85 - Starting: test_operation
+2026-07-11 17:26:18,897 - INFO - info:85 - Completed: test_operation (1.01s)
+2026-07-11 17:26:18,898 - INFO - info:85 - METRIC: test_operation_duration=1.0s | Context: {"metric_name": "test_operation_duration", "value": 1.0, "unit": "s", "tags": {}}
+2026-07-11 17:26:18,898 - INFO - info:85 - METRIC: test_operation_status=1 | Context: {"metric_name": "test_operation_status", "value": 1, "unit": "", "tags": {}}
+2026-07-11 17:26:20,261 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:26:18.899007", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:26:21,462 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:26:20.262354", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:26:21,464 - INFO - info:85 - Summary generated | Context: {"file": "test-results/monitoring_summary.json"}
+2026-07-11 17:27:03,034 - INFO - info:85 - Starting workflow monitoring | Context: {"workflow_run": "999", "commit_sha": "abc123"}
+2026-07-11 17:27:03,034 - INFO - info:85 - Starting: test_operation
+2026-07-11 17:27:04,037 - INFO - info:85 - Completed: test_operation (1.00s)
+2026-07-11 17:27:04,038 - INFO - info:85 - METRIC: test_operation_duration=1.0s | Context: {"metric_name": "test_operation_duration", "value": 1.0, "unit": "s", "tags": {}}
+2026-07-11 17:27:04,038 - INFO - info:85 - METRIC: test_operation_status=1 | Context: {"metric_name": "test_operation_status", "value": 1, "unit": "", "tags": {}}
+2026-07-11 17:27:05,384 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:27:04.038984", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:27:06,610 - INFO - info:85 - Health check completed | Context: {"timestamp": "2026-07-11T17:27:05.385019", "workflow_run": "999", "checks": {"disk_space": {"status": "healthy", "free_percent": 91.9}, "logs_directory": {"status": "healthy", "exists": true}, "aws_configured": {"status": "healthy", "configured": true}}}
+2026-07-11 17:27:06,611 - INFO - info:85 - Summary generated | Context: {"file": "test-results/monitoring_summary.json"}

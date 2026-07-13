@@ -1,0 +1,5 @@
+{"timestamp": "2026-07-11T17:17:53.837953", "level": "INFO", "logger": "test", "message": "Starting test workflow", "module": "logger", "function": "info", "line": 85}
+{"timestamp": "2026-07-11T17:17:53.841015", "level": "INFO", "logger": "test", "message": "Starting: test_operation", "module": "logger", "function": "info", "line": 85}
+{"timestamp": "2026-07-11T17:17:54.846084", "level": "INFO", "logger": "test", "message": "Completed: test_operation (1.00s)", "module": "logger", "function": "info", "line": 85}
+{"timestamp": "2026-07-11T17:17:54.847207", "level": "INFO", "logger": "test", "message": "METRIC: test_count=42 items | Context: {\"metric_name\": \"test_count\", \"value\": 42, \"unit\": \" items\", \"tags\": {}}", "module": "logger", "function": "info", "line": 85}
+{"timestamp": "2026-07-11T17:17:54.847653", "level": "INFO", "logger": "test", "message": "Test completed successfully", "module": "logger", "function": "info", "line": 85}

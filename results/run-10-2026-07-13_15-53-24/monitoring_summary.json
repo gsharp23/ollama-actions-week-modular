@@ -1,0 +1,26 @@
+{
+  "workflow_name": "ollama-enterprise",
+  "workflow_run": "10",
+  "commit_sha": "f122ee597e947b76df9aebfef7110146b8cf8af5",
+  "start_time": "2026-07-13T15:55:48.286244",
+  "end_time": "2026-07-13T15:55:48.286466",
+  "duration_seconds": 0.0,
+  "health": {
+    "timestamp": "2026-07-13T15:55:48.286476",
+    "workflow_run": "10",
+    "checks": {
+      "disk_space": {
+        "status": "healthy",
+        "free_percent": 57.4
+      },
+      "logs_directory": {
+        "status": "healthy",
+        "exists": true
+      },
+      "aws_configured": {
+        "status": "degraded",
+        "configured": false
+      }
+    }
+  }
+}

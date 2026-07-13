@@ -1,26 +1,26 @@
 # Historical Analysis Report
 
-Generated: 2026-07-11T21:11:31.463608
-Total runs analyzed: 3
+Generated: 2026-07-13T15:55:48.231755
+Total runs analyzed: 4
 
 ## Executive Summary
 
-- Total workflow runs recorded: 3
-- Runs in recent window: 3
+- Total workflow runs recorded: 4
+- Runs in recent window: 4
 - Overall activity trend: ➡️ stable
 
 ## Trends
 
 | Metric | Value | Trend |
 |--------|-------|-------|
-| Total runs | 3 | ➡️ |
-| Recent runs (last 5) | 3 | ➡️ |
+| Total runs | 4 | ➡️ |
+| Recent runs (last 5) | 4 | ➡️ |
 
 ## File Types Analyzed
 
 | File Type | Count |
 |-----------|-------|
-| .txt | 5 |
+| .txt | 6 |
 
 ## Recommendations
 
