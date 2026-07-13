@@ -1,0 +1,5 @@
+2026-07-11 17:17:53,837 - INFO - info:85 - Starting test workflow
+2026-07-11 17:17:53,841 - INFO - info:85 - Starting: test_operation
+2026-07-11 17:17:54,846 - INFO - info:85 - Completed: test_operation (1.00s)
+2026-07-11 17:17:54,847 - INFO - info:85 - METRIC: test_count=42 items | Context: {"metric_name": "test_count", "value": 42, "unit": " items", "tags": {}}
+2026-07-11 17:17:54,847 - INFO - info:85 - Test completed successfully

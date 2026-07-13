@@ -11,11 +11,24 @@ jobs:
     env:
       OLLAMA_HOST: 127.0.0.1:11435
       OLLAMA_MODELS: ${{ github.workspace }}/.ollama/models
+      AWS_DEFAULT_REGION: us-east-2
     permissions:
       contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Initialize enterprise monitoring
+        run: |
+          python3 -c "
+          import sys
+          sys.path.append('.')
+          from monitoring.dashboard import WorkflowMonitor
+
+          monitor = WorkflowMonitor('ollama-enterprise')
+          monitor.start_monitoring('${{ github.run_number }}', '${{ github.sha }}')
+          print('Enterprise monitoring initialized')
+          "
 
       - name: Cache Ollama installation
         uses: actions/cache@v4
@@ -62,12 +75,6 @@ jobs:
           ollama serve > ollama.log 2>&1 &
           sleep 10
 
-      - name: Setup Python environment
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyyaml
-
       - name: Download required models
         run: |
           python3 -c "
@@ -84,16 +91,35 @@ jobs:
               subprocess.run(['ollama', 'pull', model], check=True)
           "
 
-      - name: Verify model availability
+      - name: Setup Python environment
         run: |
-          echo "Model cache hit: ${{ steps.ollama-model-cache.outputs.cache-hit }}"
-          ollama list
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyyaml
 
-      - name: Run modular test suite
+      - name: Run modured test suite
         id: modular-tests
         run: |
-          echo "Running modular test suite..."
-          python3 scripts/test_runner.py
+          python3 -c "
+          import sys, time
+          sys.path.append('.')
+          from monitoring.dashboard import WorkflowMonitor
+          from scripts.test_runner import run_all_tests
+
+          monitor = WorkflowMonitor('ollama-enterprise')
+          monitor.start_monitoring('${{ github.run_number }}', '${{ github.sha }}')
+
+          start = time.time()
+          try:
+              with monitor.logger.timer('test_execution'):
+                  success = run_all_tests()
+              duration = time.time() - start
+              monitor.monitor_operation('test_execution', duration, success)
+          except Exception as e:
+              duration = time.time() - start
+              monitor.track_error('test_execution_failed', str(e))
+              monitor.monitor_operation('test_execution', duration, False)
+          "
         continue-on-error: true
 
       - name: Run critical tests
@@ -105,10 +131,6 @@ jobs:
       - name: Run advisory tests
         continue-on-error: true
         run: pytest tests/ -m advisory -v
-
-      - name: Verify package imports
-        run: |
-          python3 -c "from ollama_pipeline import ModelRouter, ResultStorage; print('Imports work')"
 
       - name: Run multi-model analysis pipeline
         run: |
@@ -141,6 +163,65 @@ jobs:
           python3 scripts/generate_report.py --results-dir results --output historical_report.md
           cat historical_report.md
 
+      - name: Upload results to S3
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: |
+          python3 -c "
+          import sys
+          sys.path.append('.')
+          from cloud.s3_manager import S3Manager
+          from pathlib import Path
+
+          s3 = S3Manager()
+          s3.create_bucket_if_needed()
+
+          result_dirs = list(Path('results').glob('run-*'))
+          if result_dirs:
+              latest = max(result_dirs, key=lambda p: p.stat().st_mtime)
+
+              metadata = {
+                  'workflow_run': '${{ github.run_number }}',
+                  'commit_sha': '${{ github.sha }}',
+                  'branch': '${{ github.ref_name }}'
+              }
+
+              s3.upload_workflow_results(latest, '${{ github.run_number }}', metadata)
+          else:
+              print('No result directories found')
+          "
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
+        continue-on-error: true
+
+      - name: Generate monitoring summary
+        if: always()
+        run: |
+          python3 -c "
+          import sys, shutil
+          from pathlib import Path
+          sys.path.append('.')
+          from monitoring.dashboard import WorkflowMonitor
+
+          monitor = WorkflowMonitor('ollama-enterprise')
+          monitor.start_monitoring('${{ github.run_number }}', '${{ github.sha }}')
+
+          try:
+              result_dir = Path(open('current_result_dir.txt').read().strip())
+          except FileNotFoundError:
+              result_dir = Path('results/monitoring')
+              result_dir.mkdir(parents=True, exist_ok=True)
+
+          summary = monitor.generate_summary(result_dir)
+
+          if Path('logs').exists():
+              shutil.copytree('logs', result_dir / 'logs', dirs_exist_ok=True)
+
+          print(f'Duration: {summary[\"duration_seconds\"]}s')
+          print(f'Health: {summary[\"health\"][\"checks\"]}')
+          "
+
       - name: Performance benchmarking
         run: |
           echo "=== Workflow Performance Report ===" > performance-report.txt
@@ -159,7 +240,7 @@ jobs:
       - name: Write dashboard summary
         if: always()
         run: |
-          echo "## Multi-Model Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Enterprise Monitoring Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
@@ -167,17 +248,17 @@ jobs:
           echo "| Model Cache Hit | ${{ steps.ollama-model-cache.outputs.cache-hit }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Run Number | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "See job logs for classification and routing decisions." >> $GITHUB_STEP_SUMMARY
+          echo "See job logs for classification, routing, and health check details." >> $GITHUB_STEP_SUMMARY
 
       - name: Configure git for automated commits
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      - name: Commit historical report
+      - name: Commit results and report
         run: |
-          git add historical_report.md
-          git commit -m "Update historical report - run #${{ github.run_number }}" || echo "No changes to commit"
+          git add results/ historical_report.md
+          git commit -m "Add results and monitoring from workflow run #${{ github.run_number }}" || echo "No changes to commit"
           git push origin main || echo "Push failed - may need permissions"
         continue-on-error: true
 
@@ -185,14 +266,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: workflow-results-${{ github.run_number }}
-          path: results/
-          retention-days: 30
-
-      - name: Upload historical report
-        uses: actions/upload-artifact@v4
-        with:
-          name: historical-report-${{ github.run_number }}
-          path: historical_report.md
+          path: |
+            results/
+            logs/
           retention-days: 30
 
       - name: Upload test results
